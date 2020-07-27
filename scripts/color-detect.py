@@ -22,6 +22,7 @@ while(1):
 	blueHsvFrame = cv2.cvtColor(blueFrame, cv2.COLOR_BGR2HSV)
 
 	# Set range for red color and define mask 
+	# https://stackoverflow.com/questions/10948589/choosing-the-correct-upper-and-lower-hsv-boundaries-for-color-detection-withcv
 	red_lower = np.array([136, 87, 110], np.uint8) 
 	red_upper = np.array([180, 255, 255], np.uint8) 
 	red_mask = cv2.inRange(redHsvFrame, red_lower, red_upper)
@@ -50,8 +51,10 @@ while(1):
 	rects = sorted((cv2.boundingRect(contour) for _, contour in enumerate(contours) if cv2.contourArea(contour) > 300), key = lambda r : r[1])
 
 	if len(rects) != 2:
+		print("skipping frame")
 		continue # skip frame
 
+	# https://keisan.casio.com/exec/system/1223508685
 	red = round(0.018518518518519 * (rects[1][3] - rects[0][3]) + 5)
 
 	for x, y, w, h in rects: 
@@ -64,6 +67,7 @@ while(1):
 	rects = sorted((cv2.boundingRect(contour) for _, contour in enumerate(contours) if cv2.contourArea(contour) > 300), key = lambda r : r[1])
 
 	if len(rects) != 2:
+		print("skipping frame")
 		continue # skip frame
 
 	blue = round(-0.018518518518519 * (rects[1][3] - rects[0][3]) + 5)
