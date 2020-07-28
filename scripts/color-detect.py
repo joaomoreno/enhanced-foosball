@@ -5,6 +5,7 @@ import numpy as np
 import cv2 
 from timeit import default_timer as timer
 from functools import reduce
+from numpy_ringbuffer import RingBuffer
 
 # Capturing video through webcam 
 # stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
@@ -116,6 +117,9 @@ while(1):
 	_, frame = stream.read()
 
 	start = timer()
+	# buffer.append(frame)
+	# print(frame)
+	
 	frame = render(frame)
 	duration = timer() - start
 	
