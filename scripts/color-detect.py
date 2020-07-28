@@ -4,34 +4,52 @@
 import numpy as np 
 import cv2 
 from timeit import default_timer as timer
+from functools import reduce
 
 # Capturing video through webcam 
-stream = cv2.VideoCapture(1)
+# stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
+stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+# stream = cv2.VideoCapture(1)
 
 cv2.namedWindow('stream', cv2.WND_PROP_FULLSCREEN)
-# cv2.resizeWindow('stream', 1400,700)
-cv2.setWindowProperty('stream', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN);
+# cv2.resizeWindow('stream', 700,700)
+cv2.setWindowProperty('stream', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+def merge(a, b):
+	xa, ya, wa, ha = a
+	xb, yb, wb, hb = b
+	return (min(xa, xb), ya, max(wa, wb), ha + hb)
+
+def aggregate(rects):
+	if len(rects) == 2:
+		return rects
+	
+	gaps = list(y2 - (y1 + h) for (_, y1, _, h), (_, y2, _, _) in zip(rects, rects[1:]))
+	index = gaps.index(max(gaps))
+	return [reduce(merge, rects[0:index+1]), reduce(merge, rects[index+1:])]
 
 def render(frame):
-	redBoundary = ((131, 332), (218, 770))
+	redBoundary = ((50, 312), (170, 820))
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
-	cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (0, 0, 255), 1)
+	cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 	redHsvFrame = cv2.cvtColor(redFrame, cv2.COLOR_BGR2HSV)
 
-	blueBoundary = ((1743, 338), (1831, 746))
+	blueBoundary = ((1650, 318), (1800, 796))
 	blueFrame = frame[blueBoundary[0][1]:blueBoundary[1][1], blueBoundary[0][0]:blueBoundary[1][0]]
-	cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 0), 1)
+	cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
 	blueHsvFrame = cv2.cvtColor(blueFrame, cv2.COLOR_BGR2HSV)
 
 	# Set range for red color and define mask 
 	# https://stackoverflow.com/questions/10948589/choosing-the-correct-upper-and-lower-hsv-boundaries-for-color-detection-withcv
-	red_lower = np.array([136, 87, 110], np.uint8) 
-	red_upper = np.array([180, 255, 255], np.uint8) 
-	red_mask = cv2.inRange(redHsvFrame, red_lower, red_upper)
-
+	red_lower1 = np.array([0, 135, 71], np.uint8) 
+	red_upper1 = np.array([6, 255, 255], np.uint8) 
+	red_lower2 = np.array([165, 195, 71], np.uint8) 
+	red_upper2 = np.array([179, 255, 255], np.uint8) 
+	red_mask = cv2.bitwise_or(cv2.inRange(redHsvFrame, red_lower1, red_upper1), cv2.inRange(redHsvFrame, red_lower2, red_upper2))
+	
 	# Set range for blue color and define mask 
-	blue_lower = np.array([94, 80, 110], np.uint8) 
-	blue_upper = np.array([120, 255, 255], np.uint8) 
+	blue_lower = np.array([95, 135, 71], np.uint8) 
+	blue_upper = np.array([114, 255, 255], np.uint8) 
 	blue_mask = cv2.inRange(blueHsvFrame, blue_lower, blue_upper) 
 	
 	# Morphological Transform, Dilation 
@@ -43,7 +61,7 @@ def render(frame):
 	# For red color 
 	red_mask = cv2.dilate(red_mask, kernal) 
 	res_red = cv2.bitwise_and(redFrame, redFrame, mask = red_mask)
-	
+
 	# For blue color 
 	blue_mask = cv2.dilate(blue_mask, kernal) 
 	res_blue = cv2.bitwise_and(blueFrame, blueFrame, mask = blue_mask) 
@@ -59,22 +77,36 @@ def render(frame):
 	for x, y, w, h in redRects: 
 		x += redBoundary[0][0]
 		y += redBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
 	for x, y, w, h in blueRects: 
 		x += blueBoundary[0][0]
 		y += blueBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-	if len(redRects) != 2 or len(blueRects) != 2:
+	if len(redRects) < 2 or len(blueRects) < 2:
 		print("skipping frame")
 		return frame # skip frame
+	
+	redRects = aggregate(redRects)
+
+	for x, y, w, h in redRects: 
+		x += redBoundary[0][0]
+		y += redBoundary[0][1]
+		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+	
+	blueRects = aggregate(blueRects)
+
+	for x, y, w, h in blueRects: 
+		x += blueBoundary[0][0]
+		y += blueBoundary[0][1]
+		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
 	# https://keisan.casio.com/exec/system/1223508685
 	red = round(0.018518518518519 * (redRects[1][3] - redRects[0][3]) + 5)
 	blue = round(-0.018518518518519 * (blueRects[1][3] - blueRects[0][3]) + 5)
-	cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))    
-	cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
+	cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
+	cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
 
 # Start a while loop 
