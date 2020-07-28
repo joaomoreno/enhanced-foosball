@@ -38,12 +38,12 @@ def worker():
 		red, blue = q.get()
 
 		if id is None or (red == 0 and blue == 0):
-			r = requests.post('https://67a1cb4d38d1.ngrok.io/api/game/start')
+			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start')
 			id = r.text
 		
 		if red != 0 or blue != 0:	
 			msg = 'red = %d, blue = %d' % (red, blue)
-			requests.post('https://67a1cb4d38d1.ngrok.io/api/game/update', json = { 'ConversationId': id, 'Message': msg })
+			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = { 'ConversationId': id, 'Message': msg })
 		
 		q.task_done()
 
@@ -77,12 +77,12 @@ class Game:
 			self.nextCount = 0
 
 def process(game, frame):
-	redBoundary = ((110, 312), (220, 820))
+	redBoundary = ((130, 212), (220, 920))
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
 	cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 	redHsvFrame = cv2.cvtColor(redFrame, cv2.COLOR_BGR2HSV)
 
-	blueBoundary = ((1700, 318), (1820, 796))
+	blueBoundary = ((1700, 218), (1820, 896))
 	blueFrame = frame[blueBoundary[0][1]:blueBoundary[1][1], blueBoundary[0][0]:blueBoundary[1][0]]
 	cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
 	blueHsvFrame = cv2.cvtColor(blueFrame, cv2.COLOR_BGR2HSV)
