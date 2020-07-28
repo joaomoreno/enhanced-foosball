@@ -3,7 +3,7 @@
 import cv2
 
 # Capturing video through webcam 
-stream = cv2.VideoCapture('C:\\Users\\jomo\\OneDrive\\Enhanced Foosball\\mixed.mp4')
+stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
 _, img = stream.read()
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
