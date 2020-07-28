@@ -10,11 +10,11 @@ from numpy_ringbuffer import RingBuffer
 # Capturing video through webcam 
 # stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
 stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-# stream = cv2.VideoCapture(1)
+# stream = cv2.VideoCapture(0)
 
 cv2.namedWindow('stream', cv2.WND_PROP_FULLSCREEN)
-# cv2.resizeWindow('stream', 700,700)
-cv2.setWindowProperty('stream', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+cv2.resizeWindow('stream', 1200,700)
+# cv2.setWindowProperty('stream', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 def merge(a, b):
 	xa, ya, wa, ha = a
@@ -29,13 +29,45 @@ def aggregate(rects):
 	index = gaps.index(max(gaps))
 	return [reduce(merge, rects[0:index+1]), reduce(merge, rects[index+1:])]
 
-def render(frame):
-	redBoundary = ((50, 312), (170, 820))
+class Game:
+	def __init__(self):
+		self.red = 0
+		self.blue = 0
+		self.nextRed = None
+		self.nextBlue = None
+		self.nextCount = 0
+	
+	def update(self, red, blue):
+		if red == self.red and blue == self.blue:
+			return
+		
+		if red == self.nextRed and blue == self.nextBlue:
+			if self.nextCount < 10:
+				self.nextCount += 1
+			else:
+				self.red = red
+				self.blue = blue
+				self.nextRed = None
+				self.nextBlue = None
+
+				# CALL SERGIO
+				print(red, blue)
+		else:
+			self.nextRed = red
+			self.nextBlue = blue
+			self.nextCount = 0
+
+game = Game()
+
+def process(frame):
+	global game
+
+	redBoundary = ((110, 312), (220, 820))
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
 	cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 	redHsvFrame = cv2.cvtColor(redFrame, cv2.COLOR_BGR2HSV)
 
-	blueBoundary = ((1650, 318), (1800, 796))
+	blueBoundary = ((1700, 318), (1820, 796))
 	blueFrame = frame[blueBoundary[0][1]:blueBoundary[1][1], blueBoundary[0][0]:blueBoundary[1][0]]
 	cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
 	blueHsvFrame = cv2.cvtColor(blueFrame, cv2.COLOR_BGR2HSV)
@@ -106,6 +138,8 @@ def render(frame):
 	# https://keisan.casio.com/exec/system/1223508685
 	red = round(0.018518518518519 * (redRects[1][3] - redRects[0][3]) + 5)
 	blue = round(-0.018518518518519 * (blueRects[1][3] - blueRects[0][3]) + 5)
+	game.update(red, blue)
+
 	cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
 	cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
@@ -120,7 +154,7 @@ while(1):
 	# buffer.append(frame)
 	# print(frame)
 	
-	frame = render(frame)
+	frame = process(frame)
 	duration = timer() - start
 	
 	cv2.putText(frame, str(round(duration/1000.0, 2)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
