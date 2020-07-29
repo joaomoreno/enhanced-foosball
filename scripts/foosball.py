@@ -147,7 +147,7 @@ def teamsWorker(game):
 			})
 			id = r.text
 		
-		if red != 0 or blue != 0:
+		if red != 0 or blue != 0 and url is not None:
 			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = {
 				'ConversationId': id,
 				'Title': 'Red vs Blue',
@@ -247,7 +247,10 @@ class Game:
 			return
 
 		print('%d - %d' % (red, blue))
-		if self.buffer.isFull():
+
+		if red == 0 and blue == 0:
+			teamsQueue.put((red, blue, None))
+		elif self.buffer.isFull():
 			frames = list(self.buffer.__iter__())
 			recordingsQueue.put((red, blue, frames))
 			replayQueue.put(frames)
