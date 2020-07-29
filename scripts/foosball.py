@@ -3,7 +3,7 @@
 
 import numpy as np 
 import cv2 
-from timeit import default_timer as timer
+import time
 from functools import reduce
 import requests
 import threading, queue
@@ -30,12 +30,12 @@ def aggregate(rects):
 	index = gaps.index(max(gaps))
 	return [reduce(merge, rects[0:index+1]), reduce(merge, rects[index+1:])]
 
-q = queue.Queue()
+teamsQueue = queue.Queue()
 
-def worker():
+def teamsWorker():
 	id = None
 	while True:
-		red, blue = q.get()
+		red, blue = teamsQueue.get()
 
 		if id is None or (red == 0 and blue == 0):
 			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start')
@@ -45,9 +45,9 @@ def worker():
 			msg = 'red = %d, blue = %d' % (red, blue)
 			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = { 'ConversationId': id, 'Message': msg })
 		
-		q.task_done()
+		teamsQueue.task_done()
 
-threading.Thread(target=worker, daemon=True).start()
+threading.Thread(target=teamsWorker, daemon=True).start()
 
 class Game:
 	def __init__(self):
@@ -69,8 +69,7 @@ class Game:
 				self.nextBlue = None
 				self.red = red
 				self.blue = blue		
-				# print(red, blue)
-				q.put((red, blue))
+				# teamsQueue.put((red, blue))
 		else:
 			self.nextRed = red
 			self.nextBlue = blue
@@ -159,25 +158,37 @@ def process(game, frame):
 	cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
 
-game = Game()
+def main():
+	game = Game()
+	then = None
 
-while(1):
-	# Reading the video from the 
-	# stream in image frames 
-	_, frame = stream.read()
+	while(1):
+		# Reading the video from the 
+		# stream in image frames 
+		_, frame = stream.read()
 
-	start = timer()
-	# buffer.append(frame)
-	# print(frame)
-	
-	frame = process(game, frame)
-	duration = timer() - start
-	
-	cv2.putText(frame, str(round(duration/1000.0, 2)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
-	
-	# Program Termination 
-	cv2.imshow("stream", frame) 
-	if cv2.waitKey(10) & 0xFF == ord('q'): 
-		cap.release() 
-		cv2.destroyAllWindows() 
-		break
+		# start = timer()
+		# buffer.append(frame)
+		# print(frame)
+		
+		# frame = process(game, frame)
+		now = time.time()
+
+		if then is not None:
+			print((now - then) * 1000)
+
+		then = now
+		# duration = timer() - start
+		# print((time.time() - start) / 1000.0)
+		
+		# cv2.putText(frame, str(round(duration/1000.0, 2)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
+		
+		# Program Termination 
+		cv2.imshow("stream", frame) 
+		if cv2.waitKey(10) & 0xFF == ord('q'): 
+			cap.release() 
+			cv2.destroyAllWindows() 
+			break
+
+if __name__ == '__main__':
+	main()
