@@ -381,8 +381,7 @@ def main():
 		# 	delays.append(delay)
 		# 	print(delay, round(1000.0/delay))
 		# 	# cv2.putText(frame, str(delay), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
-
-		then = now
+		# then = now
 		# if len(delays) > 0:
 		# 	print(round(1000.0/ (sum(delays)/len(delays))))
 
@@ -391,7 +390,7 @@ def main():
 		cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)
 
 		# footer
-		cv2.rectangle(frame, (0, shape[0] - 100LIVE), (shape[1], shape[0]), (0, 0, 0), -1)
+		cv2.rectangle(frame, (0, shape[0] - 100), (shape[1], shape[0]), (0, 0, 0), -1)
 		cv2.putText(frame, 'LIVE', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
 		
 		cv2.imshow('live', frame)
