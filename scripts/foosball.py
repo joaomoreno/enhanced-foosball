@@ -12,8 +12,8 @@ import datetime
 import uuid
 
 # Capturing video through webcam 
-stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-# stream = cv2.VideoCapture(1)
+# stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+stream = cv2.VideoCapture(1)
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
@@ -66,15 +66,20 @@ def recordingWorker():
 		count += 1
 		out = None
 
-		for timestamp, frame in iterator:
+		frames = list(iterator)
+		duration = frames[-1][0] - frames[0][0]
+		fps = len(frames) / duration
+
+		for _, frame in frames:
+			frame = cv2.resize(frame, None, None, fx=0.5, fy=0.5, interpolation = cv2.INTER_LINEAR)
 			if out is None:
 				height, width, _ = frame.shape
-				out = cv2.VideoWriter(filename, fourcc, 30.0, (width, height))
+				out = cv2.VideoWriter(filename, fourcc, fps, (width, height))
 			out.write(frame)
 
 		out.release()
 		out = None
-		print(filename)
+		print('RECORDING', '%dfps' % fps, filename)
 
 		recordingsQueue.task_done()
 
@@ -170,7 +175,7 @@ def process(game, frame, draw = True):
 			frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
 	if len(redRects) < 2 or len(blueRects) < 2:
-		print("skipping frame")
+		# print("skipping frame")
 		return frame # skip frame
 	
 	redRects = aggregate(redRects)
