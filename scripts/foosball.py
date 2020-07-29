@@ -184,10 +184,8 @@ def main():
 
 		try:
 			framesQueue.put(frame, False)
-			# print('OK')
 		except:
 			pass
-			# print('skip')
 
 		# start = timer()
 		# buffer.append(frame)
