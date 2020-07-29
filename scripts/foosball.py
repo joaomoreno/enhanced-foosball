@@ -8,6 +8,7 @@ from functools import reduce
 import requests
 import threading, queue
 from ringbuffer import RingBuffer
+import datetime
 
 # Capturing video through webcam 
 # stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
@@ -52,12 +53,28 @@ def teamsWorker():
 threading.Thread(target=teamsWorker, daemon=True).start()
 
 recordingsQueue = queue.Queue()
+fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 
 def recordingWorker():
 	id = None
+	count = 0
 	while True:
 		iterator = recordingsQueue.get()
-		print('iterator', sum(1 for x in iterator))
+		
+		filename = 'recording-%d.mov' % count
+		count += 1
+		out = None
+
+		for frame in iterator:
+			if out is None:
+				height, width, _ = frame.shape
+				out = cv2.VideoWriter(filename, fourcc, 30.0, (width, height))
+			out.write(frame)
+
+		out.release()
+		out = None
+		print(filename)
+
 		recordingsQueue.task_done()
 
 threading.Thread(target=recordingWorker, daemon=True).start()
