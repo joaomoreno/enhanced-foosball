@@ -7,6 +7,7 @@ import time
 from functools import reduce
 import requests
 import threading, queue
+from ringbuffer import RingBuffer
 
 # Capturing video through webcam 
 # stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
@@ -174,6 +175,7 @@ def detectionWorker(game, draw):
 def main():
 	game = Game()
 	then = None
+	buffer = RingBuffer(150) # 30 fps * 5 seconds
 
 	threading.Thread(target=detectionWorker, args=[game, False], daemon=True).start()
 
@@ -194,14 +196,13 @@ def main():
 		# frame = process(game, frame)
 		now = time.time()
 
-		# if then is not None:
-		# 	print((now - then) * 1000)
+		if then is not None:
+			cv2.putText(frame, str(round((now - then) * 1000)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 
 		then = now
 		# duration = timer() - start
 		# print((time.time() - start) / 1000.0)
 		
-		# cv2.putText(frame, str(round(duration/1000.0, 2)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 		
 		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
