@@ -11,6 +11,7 @@ using Microsoft.BotBuilderSamples.Bots;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Generic;
 using Microsoft.Bot.Schema;
+using Microsoft.BotBuilderSamples.Controllers;
 
 namespace Microsoft.BotBuilderSamples
 {
@@ -34,6 +35,7 @@ namespace Microsoft.BotBuilderSamples
             // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
             services.AddTransient<IBot, TeamsStartNewThreadInTeam>();
             services.AddSingleton(new Dictionary<string, string>());
+            services.AddSingleton<IAdaptiveTemplateLoader>(new BaseAdaptiveTemplateLoader("TeamsStartNewThreadInTeam"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
