@@ -80,7 +80,7 @@ class Game:
 redBoundary = ((130, 212), (220, 920))
 blueBoundary = ((1700, 218), (1820, 896))
 
-def process(game, frame):
+def process(game, frame, draw = True):
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
 	redHsvFrame = cv2.cvtColor(redFrame, cv2.COLOR_BGR2HSV)
 
@@ -122,15 +122,16 @@ def process(game, frame):
 	contours, hierarchy = cv2.findContours(blue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 	blueRects = sorted((cv2.boundingRect(contour) for _, contour in enumerate(contours) if cv2.contourArea(contour) > 300), key = lambda r : r[1])
 
-	for x, y, w, h in redRects: 
-		x += redBoundary[0][0]
-		y += redBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
+	if draw:
+		for x, y, w, h in redRects: 
+			x += redBoundary[0][0]
+			y += redBoundary[0][1]
+			frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
 
-	for x, y, w, h in blueRects: 
-		x += blueBoundary[0][0]
-		y += blueBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+		for x, y, w, h in blueRects: 
+			x += blueBoundary[0][0]
+			y += blueBoundary[0][1]
+			frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
 	if len(redRects) < 2 or len(blueRects) < 2:
 		print("skipping frame")
@@ -138,40 +139,43 @@ def process(game, frame):
 	
 	redRects = aggregate(redRects)
 
-	for x, y, w, h in redRects: 
-		x += redBoundary[0][0]
-		y += redBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+	if draw:
+		for x, y, w, h in redRects: 
+			x += redBoundary[0][0]
+			y += redBoundary[0][1]
+			frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 	
 	blueRects = aggregate(blueRects)
 
-	for x, y, w, h in blueRects: 
-		x += blueBoundary[0][0]
-		y += blueBoundary[0][1]
-		frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+	if draw:
+		for x, y, w, h in blueRects: 
+			x += blueBoundary[0][0]
+			y += blueBoundary[0][1]
+			frame = cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
 	# https://keisan.casio.com/exec/system/1223508685
 	red = round(0.018518518518519 * (redRects[1][3] - redRects[0][3]) + 5)
 	blue = round(-0.018518518518519 * (blueRects[1][3] - blueRects[0][3]) + 5)
 	game.update(red, blue)
 
-	# cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
-	# cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
+	if draw:
+		cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
+		cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
 
 framesQueue = queue.Queue(maxsize = 1)
 
-def detectionWorker(game):
+def detectionWorker(game, draw):
 	while True:
 		frame = framesQueue.get()
-		frame = process(game, frame)
+		frame = process(game, frame, draw)
 		framesQueue.task_done()
 
 def main():
 	game = Game()
 	then = None
 
-	threading.Thread(target=detectionWorker, args=[game], daemon=True).start()
+	threading.Thread(target=detectionWorker, args=[game, False], daemon=True).start()
 
 	while(1):
 		# Reading the video from the 
@@ -203,7 +207,7 @@ def main():
 		
 		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
-		
+
 		cv2.imshow('live', frame)
 		if cv2.waitKey(10) & 0xFF == ord('q'): 
 			stream.release() 
