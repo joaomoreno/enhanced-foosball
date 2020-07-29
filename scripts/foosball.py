@@ -13,7 +13,7 @@ import uuid
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, ContentSettings
 import random
 
-class Narrator:
+class Nils:
   def __init__(self):
     self.red = 0
     self.blue = 0
@@ -127,7 +127,7 @@ def aggregate(rects):
 
 teamsQueue = queue.Queue()
 
-def teamsWorker():
+def teamsWorker(game):
 	id = None
 	while True:
 		red, blue, url = teamsQueue.get()
@@ -135,33 +135,34 @@ def teamsWorker():
 
 		if id is None or (red == 0 and blue == 0):
 			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start', json = {
-				'Title': 'RED vs BLUE',
+				'Title': 'Red vs Blue',
 				'Score': score,
-				'Message': 'Foosball'
+				'Message': game.nils.goal(red, blue)
 			})
 			id = r.text
 		
 		if red != 0 or blue != 0:
 			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = {
 				'ConversationId': id,
-				'Title': 'RED vs BLUE',
+				'Title': 'Red vs Blue',
 				'Score': score,
-				'Message': 'Foosball',
+				'Message': game.nils.goal(red, blue),
 				'Replay': url
 			})
 		
 		if red == 7 or blue == 7:
+			winner = 'Red' if red == 7 else 'Blue'
 			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = {
 				'ConversationId': id,
-				'Title': 'Some team wins',
+				'Title': '%s team wins' % (winner),
 				'Score': score,
-				'Message': 'Game over, congrats team!'
+				'Message': game.nils.goal(red, blue)
 			})
 		
 		teamsQueue.task_done()
 
-threading.Thread(target=teamsWorker, daemon=True).start()
 
+replayQueue = queue.Queue()
 recordingsQueue = queue.Queue()
 fourcc = cv2.VideoWriter_fourcc(*'avc1')
 
@@ -171,14 +172,13 @@ def recordingWorker():
 	id = None
 	count = 0
 	while True:
-		(red, blue, iterator) = recordingsQueue.get()
+		(red, blue, frames) = recordingsQueue.get()
 		
 		id = str(uuid.uuid4())
 		filename = '%s.mp4' % id
 		count += 1
 		out = None
 
-		frames = list(iterator)
 		duration = frames[-1][0] - frames[0][0]
 		fps = len(frames) / duration
 
@@ -196,7 +196,6 @@ def recordingWorker():
 		with open(filename, "rb") as data:
 			blob.upload_blob(data, content_settings = ContentSettings(content_type='video/mp4'))
 
-		print('uploaded', blob.url)
 		teamsQueue.put((red, blue, blob.url))
 		recordingsQueue.task_done()
 
@@ -205,6 +204,7 @@ threading.Thread(target=recordingWorker, daemon=True).start()
 class Game:
 	def __init__(self, buffer):
 		self.buffer = buffer
+		self.nils = Nils()
 		self.started = False
 		self.red = None
 		self.blue = None
@@ -241,7 +241,9 @@ class Game:
 
 		print('%d - %d' % (red, blue))
 		if self.buffer.isFull():
-			recordingsQueue.put((red, blue, self.buffer.__iter__()))
+			frames = list(self.buffer.__iter__())
+			recordingsQueue.put((red, blue, frames))
+			replayQueue.put(frames)
 		
 		if red == 7 or blue == 7:
 			self.started = False
@@ -350,8 +352,10 @@ def main():
 	game = Game(buffer)
 	then = None
 	shape = None
+	replay = None
 
 	threading.Thread(target=detectionWorker, args=[game, False], daemon=True).start()
+	threading.Thread(target=teamsWorker, args=[game], daemon=True).start()
 
 	while(1):
 		# Reading the video from the 
@@ -385,13 +389,29 @@ def main():
 		# if len(delays) > 0:
 		# 	print(round(1000.0/ (sum(delays)/len(delays))))
 
-		#	draw
-		cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)    
-		cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)
+		if replay is None:
+			try:
+				replay = replayQueue.get_nowait()
+			except:
+				pass
 
-		# footer
-		cv2.rectangle(frame, (0, shape[0] - 100), (shape[1], shape[0]), (0, 0, 0), -1)
-		cv2.putText(frame, 'LIVE', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+		if replay is not None:
+			_, frame = replay.pop(0)
+
+			if len(replay) == 0:
+				replay = None
+			
+			# footer
+			cv2.rectangle(frame, (0, shape[0] - 100), (shape[1], shape[0]), (0, 0, 0), -1)
+			cv2.putText(frame, 'REPLAY', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+		else:
+			#	draw
+			cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)    
+			cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)
+
+			# footer
+			cv2.rectangle(frame, (0, shape[0] - 100), (shape[1], shape[0]), (0, 0, 0), -1)
+			cv2.putText(frame, 'LIVE', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
 		
 		cv2.imshow('live', frame)
 
