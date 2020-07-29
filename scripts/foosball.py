@@ -110,10 +110,7 @@ else:
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
-# cv2.setWindowProperty('live',cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
-
-# cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
-# cv2.resizeWindow('processed', 1200,700)
+cv2.setWindowProperty('live',cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
 
 def merge(a, b):
 	xa, ya, wa, ha = a
@@ -152,6 +149,7 @@ def teamsWorker(game):
 				'ConversationId': id,
 				'Title': 'Red vs Blue',
 				'Score': score,
+				'State': 'LIVE',
 				'Message': message,
 				'Replay': url
 			})
@@ -236,6 +234,8 @@ class Game:
 			self.nextCount = 0
 		
 	def setScore(self, red, blue):
+		if self.red is not None:
+			scorer = 'Red' if red > self.red else 'Blue'
 		self.red = red
 		self.blue = blue
 
@@ -253,7 +253,7 @@ class Game:
 		elif self.buffer.isFull():
 			frames = list(self.buffer.__iter__())
 			recordingsQueue.put((red, blue, frames))
-			replayQueue.put(frames)
+			replayQueue.put((frames, scorer))
 		
 		if red == 7 or blue == 7:
 			self.started = False
@@ -401,7 +401,7 @@ def main():
 
 		if replay is None:
 			try:
-				replay = replayQueue.get_nowait()
+				(replay, scorer) = replayQueue.get_nowait()
 			except:
 				pass
 
@@ -413,7 +413,7 @@ def main():
 			
 			# footer
 			cv2.rectangle(frame, (0, shape[0] - 100), (shape[1], shape[0]), (0, 0, 0), -1)
-			cv2.putText(frame, 'REPLAY', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+			cv2.putText(frame, 'REPLAY - %s team scored!' % (scorer), (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
 		else:
 			#	draw
 			cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)    
