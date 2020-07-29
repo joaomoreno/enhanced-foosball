@@ -10,7 +10,8 @@ import threading, queue
 from ringbuffer import RingBuffer
 import datetime
 import uuid
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, ContentSettingsimport random
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, ContentSettings
+import random
 
 class Narrator:
   def __init__(self):
@@ -102,11 +103,12 @@ if live:
 	# stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'));
 	# stream.set(cv2.CAP_PROP_FPS, 60)
 else:
-	stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-
+	stream = cv2.VideoCapture('raw/output.mp4')
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
+# cv2.setWindowProperty('live',cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+
 # cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 # cv2.resizeWindow('processed', 1200,700)
 
@@ -347,6 +349,7 @@ def main():
 	buffer = RingBuffer(150) # 30 fps * 5 seconds
 	game = Game(buffer)
 	then = None
+	shape = None
 
 	threading.Thread(target=detectionWorker, args=[game, False], daemon=True).start()
 
@@ -354,6 +357,9 @@ def main():
 		# Reading the video from the 
 		# stream in image frames 
 		_, frame = stream.read()
+
+		if shape is None:
+			shape = frame.shape
 
 		try:
 			framesQueue.put(frame, False)
@@ -381,10 +387,13 @@ def main():
 		# 	print(round(1000.0/ (sum(delays)/len(delays))))
 
 		#	draw
-		cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
-		cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
-		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
-		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
+		cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)    
+		cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_PLAIN, 6, (255, 255, 255), 3)
+
+		# footer
+		cv2.rectangle(frame, (0, shape[0] - 100LIVE), (shape[1], shape[0]), (0, 0, 0), -1)
+		cv2.putText(frame, 'LIVE', (50, shape[0] - 30), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 4)
+		
 		cv2.imshow('live', frame)
 
 		if cv2.waitKey(10) & 0xFF == ord('q'): 
