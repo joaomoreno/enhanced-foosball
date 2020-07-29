@@ -6,6 +6,14 @@ class Node:
     self.element = element
     self.next = None
 
+def iterate(current, tail):
+  while current is not None and current != tail:
+    yield current.element
+    current = current.next
+  
+  if current is not None:
+    yield current.element
+
 class RingBuffer:
   def __init__(self, cap):
     self.cap = cap
@@ -19,16 +27,13 @@ class RingBuffer:
 
   def __iter__(self):
     self.mutex.acquire()
-    current = self.head
-    tail = self.tail
-    self.mutex.release()
-
-    while current is not None and current != tail:
-      yield current.element
-      current = current.next
-    
-    if current is not None:
-      yield current.element
+    try:
+      return iterate(self.head, self.tail)
+    finally:
+      self.mutex.release()
+  
+  def isFull(self):
+    return self.size == self.cap
   
   def push(self, element):
     node = Node(element)

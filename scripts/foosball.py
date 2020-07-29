@@ -51,8 +51,20 @@ def teamsWorker():
 
 threading.Thread(target=teamsWorker, daemon=True).start()
 
+recordingsQueue = queue.Queue()
+
+def recordingWorker():
+	id = None
+	while True:
+		iterator = recordingsQueue.get()
+		print('iterator', sum(1 for x in iterator))
+		recordingsQueue.task_done()
+
+threading.Thread(target=recordingWorker, daemon=True).start()
+
 class Game:
-	def __init__(self):
+	def __init__(self, buffer):
+		self.buffer = buffer
 		self.red = 0
 		self.blue = 0
 		self.nextRed = None
@@ -69,14 +81,19 @@ class Game:
 			else:
 				self.nextRed = None
 				self.nextBlue = None
-				self.red = red
-				self.blue = blue
-				print('SCORE', red, blue)
-				# teamsQueue.put((red, blue))
+				self.setScore(red, blue)
 		else:
 			self.nextRed = red
 			self.nextBlue = blue
 			self.nextCount = 0
+		
+	def setScore(self, red, blue):
+		print('SCORE', red, blue)
+		self.red = red
+		self.blue = blue
+		# teamsQueue.put((red, blue))
+		if self.buffer.isFull():
+			recordingsQueue.put(self.buffer.__iter__())
 
 redBoundary = ((130, 212), (220, 920))
 blueBoundary = ((1700, 218), (1820, 896))
@@ -173,9 +190,9 @@ def detectionWorker(game, draw):
 		framesQueue.task_done()
 
 def main():
-	game = Game()
-	then = None
 	buffer = RingBuffer(150) # 30 fps * 5 seconds
+	game = Game(buffer)
+	then = None
 
 	threading.Thread(target=detectionWorker, args=[game, False], daemon=True).start()
 
@@ -189,25 +206,23 @@ def main():
 		except:
 			pass
 
-		# start = timer()
-		# buffer.append(frame)
-		# print(frame)
-		
+		# logic
 		# frame = process(game, frame)
+		buffer.push(frame)
+		
+		# measure
 		now = time.time()
 
 		if then is not None:
 			cv2.putText(frame, str(round((now - then) * 1000)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 
 		then = now
-		# duration = timer() - start
-		# print((time.time() - start) / 1000.0)
-		
-		
+
+		#	draw
 		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
-
 		cv2.imshow('live', frame)
+
 		if cv2.waitKey(10) & 0xFF == ord('q'): 
 			stream.release() 
 			cv2.destroyAllWindows() 
