@@ -81,6 +81,8 @@ namespace Microsoft.BotBuilderSamples.Controllers
         [Route("update")]
         public async Task UpdateAsync([FromBody]MatchUpdatePayload payload)
         {
+            var convoId = payload.ConversationId;
+
             IMessageActivity activity;
             if (string.IsNullOrEmpty(payload.Replay))
             {
@@ -94,16 +96,26 @@ namespace Microsoft.BotBuilderSamples.Controllers
                     .Replace("${Score}", payload.Score)
                     .Replace("${Message}", payload.Message)
                     .Replace("${Replay}", payload.Replay);
-                
-                activity = MessageFactory.Attachment(new Attachment()
-                {
-                    ContentType = "application/vnd.microsoft.card.adaptive",
-                    Content = JsonConvert.DeserializeObject(content),
-                });
+
+                activity = MessageFactory.Attachment(CreateAttachment(content));
+
+                var replacementContent = gameStartTemplate
+                    .Replace("${Title}", payload.Title)
+                    .Replace("${Score}", payload.Score);
+
+                await client.Conversations.UpdateActivityAsync(convoId, convos[convoId], (Activity)MessageFactory.Attachment(CreateAttachment(replacementContent)));
             }
             
-            var convoId = payload.ConversationId;
             await client.Conversations.ReplyToActivityAsync(convoId, convos[convoId], (Activity)activity);
+        }
+
+        private Attachment CreateAttachment(string content)
+        {
+            return new Attachment()
+            {
+                ContentType = "application/vnd.microsoft.card.adaptive",
+                Content = JsonConvert.DeserializeObject(content),
+            };
         }
     }
 
