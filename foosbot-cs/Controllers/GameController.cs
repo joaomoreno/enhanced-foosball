@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Security.Policy;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Bot.Builder;
@@ -10,7 +8,11 @@ using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using Microsoft.Bot.Schema.Teams;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Graph;
+using Microsoft.Graph.Auth;
+using Microsoft.Identity.Client;
 using Newtonsoft.Json;
+using Attachment = Microsoft.Bot.Schema.Attachment;
 
 namespace Microsoft.BotBuilderSamples.Controllers
 {
@@ -19,6 +21,7 @@ namespace Microsoft.BotBuilderSamples.Controllers
     public class GameStart : ControllerBase
     {
         private readonly ConnectorClient client;
+        private readonly GraphServiceClient graphClient;
         private string _appId;
         private string _appPassword;
         private Dictionary<string, string> convos;
@@ -31,7 +34,15 @@ namespace Microsoft.BotBuilderSamples.Controllers
             _appPassword = configuration["MicrosoftAppPassword"];
             AppCredentials.TrustServiceUrl("https://smba.trafficmanager.net/amer/");
             this.client = new ConnectorClient(new Uri("https://smba.trafficmanager.net/amer/"), microsoftAppId: this._appId, microsoftAppPassword: this._appPassword);
-            
+
+            IConfidentialClientApplication confidentialClientApplication = ConfidentialClientApplicationBuilder
+                .Create(this._appId)
+                .WithTenantId("72f988bf-86f1-41af-91ab-2d7cd011db47")
+                .WithClientSecret(this._appPassword)
+                .Build();
+            ClientCredentialProvider authProvider = new ClientCredentialProvider(confidentialClientApplication);
+            this.graphClient = new GraphServiceClient(authProvider);
+
             this.convos = convos;
             
             this.gameStartTemplate = loader.InitializeAdaptiveTemplate("MatchStart.json");
