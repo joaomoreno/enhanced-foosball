@@ -59,6 +59,7 @@ namespace Microsoft.BotBuilderSamples.Controllers
                 Activity = (Activity)MessageFactory.Attachment(attachment)
             };
 
+            // Post game start card
             var result = await client.Conversations.CreateConversationAsync(conversationParameters);
             convos[result.Id] = result.ActivityId;
 
@@ -73,19 +74,24 @@ namespace Microsoft.BotBuilderSamples.Controllers
 
         [HttpPost]
         [Route("update")]
-        public async Task UpdateAsync([FromBody]MatchUpdatePayload updatePayload)
+        public async Task UpdateAsync([FromBody]MatchUpdatePayload payload)
         {
-            var attachment = new Attachment
+            IMessageActivity activity;
+            if (string.IsNullOrEmpty(payload.Replay))
             {
-                ContentType = "application/vnd.microsoft.card.adaptive",
-                Content = JsonConvert.DeserializeObject(gameUpdateTemplate),
-            };
-
-            //var message = Activity.CreateMessageActivity();
-            //message.Text = updatePayload.Message;
-
-            var convoId = updatePayload.ConversationId;
-            await client.Conversations.ReplyToActivityAsync(convoId, convos[convoId], (Activity)MessageFactory.Attachment(attachment));
+                activity = MessageFactory.Text(payload.Message);
+            } 
+            else
+            {
+                activity = MessageFactory.Attachment(new Attachment()
+                {
+                    ContentType = "application/vnd.microsoft.card.adaptive",
+                    Content = JsonConvert.DeserializeObject(gameUpdateTemplate),
+                });
+            }
+            
+            var convoId = payload.ConversationId;
+            await client.Conversations.ReplyToActivityAsync(convoId, convos[convoId], (Activity)activity);
         }
     }
 
