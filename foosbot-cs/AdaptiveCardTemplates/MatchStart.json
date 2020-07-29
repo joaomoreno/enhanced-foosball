@@ -1,0 +1,48 @@
+{
+    "type": "AdaptiveCard",
+    "body": [
+        {
+            "type": "Container",
+            "spacing": "Medium",
+            "verticalContentAlignment": "Center",
+            "style": "emphasis",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "LIVE",
+                    "horizontalAlignment": "Right",
+                    "weight": "Bolder",
+                    "color": "Attention"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "RED vs BLUE",
+                    "spacing": "Medium",
+                    "horizontalAlignment": "Center",
+                    "fontType": "Default",
+                    "size": "ExtraLarge",
+                    "weight": "Bolder",
+                    "color": "Accent"
+                },
+                {
+                    "type": "TextBlock",
+                    "text": "0 - 0",
+                    "spacing": "Medium",
+                    "horizontalAlignment": "Center",
+                    "fontType": "Monospace",
+                    "size": "ExtraLarge",
+                    "weight": "Bolder"
+                }
+            ]
+        }
+    ],
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.2",
+    "actions": [
+        {
+            "type": "Action.Submit",
+            "title": "Watch Game",
+            "style": "positive"
+        }
+    ]
+}
