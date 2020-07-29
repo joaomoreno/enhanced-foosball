@@ -9,11 +9,11 @@ import requests
 import threading, queue
 from ringbuffer import RingBuffer
 import datetime
+import uuid
 
 # Capturing video through webcam 
-# stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
-# stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-stream = cv2.VideoCapture(1)
+stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+# stream = cv2.VideoCapture(1)
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
@@ -61,7 +61,8 @@ def recordingWorker():
 	while True:
 		iterator = recordingsQueue.get()
 		
-		filename = 'recording-%d.mov' % count
+		id = str(uuid.uuid4())
+		filename = '%s.mov' % id
 		count += 1
 		out = None
 
@@ -206,6 +207,8 @@ def detectionWorker(game, draw):
 		frame = process(game, frame, draw)
 		framesQueue.task_done()
 
+delays = []
+
 def main():
 	buffer = RingBuffer(150) # 30 fps * 5 seconds
 	game = Game(buffer)
@@ -231,9 +234,14 @@ def main():
 		now = time.time()
 
 		if then is not None:
-			cv2.putText(frame, str(round((now - then) * 1000)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
+			delay = round((now - then) * 1000)
+			delays.append(delay)
+			# print(delay, round(1000.0/delay))
+			cv2.putText(frame, str(delay), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 
 		then = now
+		# if len(delays) > 0:
+		# 	print(round(1000.0/ (sum(delays)/len(delays))))
 
 		#	draw
 		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
