@@ -2,29 +2,18 @@
     "type": "AdaptiveCard",
     "body": [
         {
-            "type": "TextBlock",
-            "text": "${Title}",
+            "type": "Container",
             "spacing": "Medium",
-            "horizontalAlignment": "Center",
-            "fontType": "Default",
-            "size": "ExtraLarge",
-            "weight": "Bolder",
-            "color": "Accent"
-        },
-        {
-            "type": "TextBlock",
-            "text": "${Score}",
-            "spacing": "Medium",
-            "horizontalAlignment": "Center",
-            "fontType": "Monospace",
-            "size": "ExtraLarge",
-            "weight": "Bolder"
-        },
-        {
-            "type": "TextBlock",
-            "spacing": "Medium",
-            "wrap": true,
-            "text": "${Message}"
+            "verticalContentAlignment": "Center",
+            "style": "emphasis",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "spacing": "Medium",
+                    "wrap": true,
+                    "text": "${Message}"
+                }
+            ]
         }
     ],
     "actions": [
