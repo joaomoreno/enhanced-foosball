@@ -13,9 +13,10 @@ import threading, queue
 stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
 # stream = cv2.VideoCapture(0)
 
-cv2.namedWindow('stream', cv2.WND_PROP_FULLSCREEN)
-cv2.resizeWindow('stream', 1200,700)
-# cv2.setWindowProperty('stream', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
+cv2.resizeWindow('live', 1200,700)
+# cv2.namedWindow('processed', cv2.WND_PROP_FULLSCREEN)
+# cv2.resizeWindow('processed', 1200,700)
 
 def merge(a, b):
 	xa, ya, wa, ha = a
@@ -68,22 +69,22 @@ class Game:
 				self.nextRed = None
 				self.nextBlue = None
 				self.red = red
-				self.blue = blue		
+				self.blue = blue
+				print('SCORE', red, blue)
 				# teamsQueue.put((red, blue))
 		else:
 			self.nextRed = red
 			self.nextBlue = blue
 			self.nextCount = 0
 
+redBoundary = ((130, 212), (220, 920))
+blueBoundary = ((1700, 218), (1820, 896))
+
 def process(game, frame):
-	redBoundary = ((130, 212), (220, 920))
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
-	cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 	redHsvFrame = cv2.cvtColor(redFrame, cv2.COLOR_BGR2HSV)
 
-	blueBoundary = ((1700, 218), (1820, 896))
 	blueFrame = frame[blueBoundary[0][1]:blueBoundary[1][1], blueBoundary[0][0]:blueBoundary[1][0]]
-	cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
 	blueHsvFrame = cv2.cvtColor(blueFrame, cv2.COLOR_BGR2HSV)
 
 	# Set range for red color and define mask 
@@ -154,18 +155,35 @@ def process(game, frame):
 	blue = round(-0.018518518518519 * (blueRects[1][3] - blueRects[0][3]) + 5)
 	game.update(red, blue)
 
-	cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
-	cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
+	# cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
+	# cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
+
+framesQueue = queue.Queue(maxsize = 1)
+
+def detectionWorker(game):
+	while True:
+		frame = framesQueue.get()
+		frame = process(game, frame)
+		framesQueue.task_done()
 
 def main():
 	game = Game()
 	then = None
 
+	threading.Thread(target=detectionWorker, args=[game], daemon=True).start()
+
 	while(1):
 		# Reading the video from the 
 		# stream in image frames 
 		_, frame = stream.read()
+
+		try:
+			framesQueue.put(frame, False)
+			# print('OK')
+		except:
+			pass
+			# print('skip')
 
 		# start = timer()
 		# buffer.append(frame)
@@ -174,8 +192,8 @@ def main():
 		# frame = process(game, frame)
 		now = time.time()
 
-		if then is not None:
-			print((now - then) * 1000)
+		# if then is not None:
+		# 	print((now - then) * 1000)
 
 		then = now
 		# duration = timer() - start
@@ -183,10 +201,12 @@ def main():
 		
 		# cv2.putText(frame, str(round(duration/1000.0, 2)), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 		
-		# Program Termination 
-		cv2.imshow("stream", frame) 
+		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
+		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
+		
+		cv2.imshow('live', frame)
 		if cv2.waitKey(10) & 0xFF == ord('q'): 
-			cap.release() 
+			stream.release() 
 			cv2.destroyAllWindows() 
 			break
 
