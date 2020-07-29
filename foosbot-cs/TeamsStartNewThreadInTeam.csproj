@@ -7,10 +7,12 @@
 
   <ItemGroup>
     <Content Remove="AdaptiveCardTemplates\MatchStart.json" />
+    <Content Remove="AdaptiveCardTemplates\MatchUpdate.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="AdaptiveCardTemplates\MatchStart.json" />
+    <EmbeddedResource Include="AdaptiveCardTemplates\MatchUpdate.json" />
   </ItemGroup>
 
   <ItemGroup>

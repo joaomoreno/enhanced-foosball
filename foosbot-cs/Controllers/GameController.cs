@@ -42,11 +42,16 @@ namespace Microsoft.BotBuilderSamples.Controllers
         [Route("start")]
         public async Task<string> StartAsync([FromBody] MatchStartPayload payload)
         {
+            // HACK HACK HACK
+            string content = gameStartTemplate
+                .Replace("${Title}", payload.Title)
+                .Replace("${Score}", payload.Score);
             //var cardJson = this.transformer.Transform(this.customerProfileTemplate, JsonConvert.SerializeObject(jsonData));
+
             var attachment = new Attachment
             {
                 ContentType = "application/vnd.microsoft.card.adaptive",
-                Content = JsonConvert.DeserializeObject(gameStartTemplate),
+                Content = JsonConvert.DeserializeObject(content),
             };
 
             var conversationParameters = new ConversationParameters
@@ -83,10 +88,17 @@ namespace Microsoft.BotBuilderSamples.Controllers
             } 
             else
             {
+                // HACK HACK HACK
+                var content = gameUpdateTemplate
+                    .Replace("${Title}", payload.Title)
+                    .Replace("${Score}", payload.Score)
+                    .Replace("${Message}", payload.Message)
+                    .Replace("${Replay}", payload.Replay);
+                
                 activity = MessageFactory.Attachment(new Attachment()
                 {
                     ContentType = "application/vnd.microsoft.card.adaptive",
-                    Content = JsonConvert.DeserializeObject(gameUpdateTemplate),
+                    Content = JsonConvert.DeserializeObject(content),
                 });
             }
             
