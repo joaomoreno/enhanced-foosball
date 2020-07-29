@@ -133,7 +133,10 @@ def teamsWorker(game):
 		red, blue, url = teamsQueue.get()
 		score = '%d - %d' % (red, blue)
 		scorer = '🟥' if game.nils.redScored(red, blue) else '🔵'
-		message = '%s %s - %s' % (scorer, score, game.nils.goal(red, blue))
+		message = game.nils.goal(red, blue)
+
+		if red != 0 or blue != 0:
+			message = '%s %s - %s' % (scorer, score, message)
 
 		if id is None or (red == 0 and blue == 0):
 			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start', json = {
@@ -258,8 +261,8 @@ class Game:
 		if red == 7 or blue == 7:
 			self.started = False
 
-redBoundary = ((140, 212), (220, 920))
-blueBoundary = ((1630, 218), (1740, 896))
+redBoundary = ((140, 250), (220, 800))
+blueBoundary = ((1630, 250), (1740, 800))
 
 def process(game, frame, draw = True):
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
