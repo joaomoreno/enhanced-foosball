@@ -98,14 +98,13 @@ namespace Microsoft.BotBuilderSamples.Controllers
                     .Replace("${Replay}", payload.Replay);
 
                 activity = MessageFactory.Attachment(CreateAttachment(content));
-
-                var replacementContent = gameStartTemplate
-                    .Replace("${Title}", payload.Title)
-                    .Replace("${Score}", payload.Score);
-
-                await client.Conversations.UpdateActivityAsync(convoId, convos[convoId], (Activity)MessageFactory.Attachment(CreateAttachment(replacementContent)));
             }
-            
+
+            var replacementContent = gameStartTemplate
+                .Replace("${Title}", payload.Title)
+                .Replace("${Score}", payload.Score);
+
+            await client.Conversations.UpdateActivityAsync(convoId, convos[convoId], (Activity)MessageFactory.Attachment(CreateAttachment(replacementContent)));
             await client.Conversations.ReplyToActivityAsync(convoId, convos[convoId], (Activity)activity);
         }
 
