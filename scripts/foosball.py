@@ -17,11 +17,15 @@ class Nils:
   def __init__(self):
     self.red = 0
     self.blue = 0
+	
+	def redScored(self, red, blue):
+		return red > self.red
   
   def goal(self, red, blue):
     wasEqual = self.red == self.blue
 
-    scorer = 'red' if red > self.red else 'blue'
+    scorer = self.scorer(red, blue)
+    scorer = 'red' if self.redScored() else 'blue'
     sufferer = 'blue' if red > self.red else 'red'
     scorerScore = red if red > self.red else blue
     suffererScore = blue if red > self.red else red
@@ -132,12 +136,15 @@ def teamsWorker(game):
 	while True:
 		red, blue, url = teamsQueue.get()
 		score = '%d - %d' % (red, blue)
+		scorer = '🟥' if game.nils.redScored(red, blue) else '🔵'
+		message = '%s | %s | %s' (score, scorer, game.nils.goal(red, blue))
 
 		if id is None or (red == 0 and blue == 0):
 			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start', json = {
 				'Title': 'Red vs Blue',
 				'Score': score,
-				'Message': game.nils.goal(red, blue)
+				'State': 'LIVE',
+				'Message': message
 			})
 			id = r.text
 		
@@ -146,7 +153,7 @@ def teamsWorker(game):
 				'ConversationId': id,
 				'Title': 'Red vs Blue',
 				'Score': score,
-				'Message': game.nils.goal(red, blue),
+				'Message': message,
 				'Replay': url
 			})
 		
@@ -156,7 +163,8 @@ def teamsWorker(game):
 				'ConversationId': id,
 				'Title': '%s team wins' % (winner),
 				'Score': score,
-				'Message': game.nils.goal(red, blue)
+				'State': '',
+				'Message': message
 			})
 		
 		teamsQueue.task_done()
