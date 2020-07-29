@@ -1,4 +1,5 @@
 import unittest
+from threading import Lock
 
 class Node:
   def __init__(self, element):
@@ -11,13 +12,16 @@ class RingBuffer:
     self.size = 0
     self.head = None
     self.tail = None
+    self.mutex = Lock()
 
   def __len__(self):
     return self.size
 
   def __iter__(self):
+    self.mutex.acquire()
     current = self.head
     tail = self.tail
+    self.mutex.release()
 
     while current is not None and current != tail:
       yield current.element
@@ -29,6 +33,7 @@ class RingBuffer:
   def push(self, element):
     node = Node(element)
 
+    self.mutex.acquire()
     if self.size == 0:
       self.head = node
       self.tail = node
@@ -41,6 +46,7 @@ class RingBuffer:
       while self.size > self.cap:
         self.head = self.head.next
         self.size -= 1
+    self.mutex.release()
 
 class TestRingBuffer(unittest.TestCase):
 
