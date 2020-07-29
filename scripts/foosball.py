@@ -12,13 +12,24 @@ import datetime
 import uuid
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, ContentSettings
 
+live = True
+# live = False
+
 # Capturing video through webcam 
-stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-# stream = cv2.VideoCapture(1)
+
+if live:
+	stream = cv2.VideoCapture(1)
+	# stream.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+	# stream.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+	# stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'));
+	# stream.set(cv2.CAP_PROP_FPS, 60)
+else:
+	stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
-# cv2.namedWindow('processed', cv2.WND_PROP_FULLSCREEN)
+# cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 # cv2.resizeWindow('processed', 1200,700)
 
 def merge(a, b):
@@ -39,15 +50,33 @@ teamsQueue = queue.Queue()
 def teamsWorker():
 	id = None
 	while True:
-		red, blue = teamsQueue.get()
+		red, blue, url = teamsQueue.get()
+		score = '%d - %d' % (red, blue)
 
 		if id is None or (red == 0 and blue == 0):
-			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start')
+			r = requests.post('https://foosbot-as.azurewebsites.net/api/game/start', json = {
+				'Title': 'RED vs BLUE',
+				'Score': score,
+				'Message': 'Foosball'
+			})
 			id = r.text
 		
-		if red != 0 or blue != 0:	
-			msg = 'red = %d, blue = %d' % (red, blue)
-			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = { 'ConversationId': id, 'Message': msg })
+		if red != 0 or blue != 0:
+			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = {
+				'ConversationId': id,
+				'Title': 'RED vs BLUE',
+				'Score': score,
+				'Message': 'Foosball',
+				'Replay': url
+			})
+		
+		if red == 7 or blue == 7:
+			requests.post('https://foosbot-as.azurewebsites.net/api/game/update', json = {
+				'ConversationId': id,
+				'Title': 'Some team wins',
+				'Score': score,
+				'Message': 'Game over, congrats team!'
+			})
 		
 		teamsQueue.task_done()
 
@@ -62,7 +91,7 @@ def recordingWorker():
 	id = None
 	count = 0
 	while True:
-		iterator = recordingsQueue.get()
+		(red, blue, iterator) = recordingsQueue.get()
 		
 		id = str(uuid.uuid4())
 		filename = '%s.mp4' % id
@@ -88,6 +117,7 @@ def recordingWorker():
 			blob.upload_blob(data, content_settings = ContentSettings(content_type='video/mp4'))
 
 		print('uploaded', blob.url)
+		teamsQueue.put((red, blue, blob.url))
 		recordingsQueue.task_done()
 
 threading.Thread(target=recordingWorker, daemon=True).start()
@@ -131,10 +161,12 @@ class Game:
 
 		print('%d - %d' % (red, blue))
 		if self.buffer.isFull():
-			# teamsQueue.put((red, blue))
-			recordingsQueue.put(self.buffer.__iter__())
+			recordingsQueue.put((red, blue, self.buffer.__iter__()))
+		
+		if red == 7 or blue == 7:
+			self.started = False
 
-redBoundary = ((135, 212), (220, 920))
+redBoundary = ((140, 212), (220, 920))
 blueBoundary = ((1630, 218), (1740, 896))
 
 def process(game, frame, draw = True):
@@ -213,11 +245,12 @@ def process(game, frame, draw = True):
 	# https://keisan.casio.com/exec/system/1223508685
 	red = round(0.018518518518519 * (redRects[1][3] - redRects[0][3]) + 5)
 	blue = round(-0.018518518518519 * (blueRects[1][3] - blueRects[0][3]) + 5)
+
+	if red > 7 or blue > 7:
+		return frame
+
 	game.update(red, blue)
 
-	if draw:
-		cv2.putText(frame, str(red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
-		cv2.putText(frame, str(blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 	return frame
 
 framesQueue = queue.Queue(maxsize = 1)
@@ -228,7 +261,9 @@ def detectionWorker(game, draw):
 		frame = process(game, frame, draw)
 		framesQueue.task_done()
 
-delays = []
+# delays = []
+#debug = True
+debug = False
 
 def main():
 	buffer = RingBuffer(150) # 30 fps * 5 seconds
@@ -250,22 +285,26 @@ def main():
 		now = time.time()
 
 		# logic
-		# frame = process(game, frame)
-		buffer.push((now, frame))
+		if debug:
+			frame = process(game, frame)
+		else:
+			buffer.push((now, frame))
 		
 		# measure
 
-		if then is not None:
-			delay = round((now - then) * 1000)
-			delays.append(delay)
-			# print(delay, round(1000.0/delay))
-			cv2.putText(frame, str(delay), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
+		# if then is not None:
+		# 	delay = round((now - then) * 1000)
+		# 	delays.append(delay)
+		# 	print(delay, round(1000.0/delay))
+		# 	# cv2.putText(frame, str(delay), (10, 30), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255))
 
 		then = now
 		# if len(delays) > 0:
 		# 	print(round(1000.0/ (sum(delays)/len(delays))))
 
 		#	draw
+		cv2.putText(frame, str(game.red), (redBoundary[0][0], redBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))    
+		cv2.putText(frame, str(game.blue), (blueBoundary[0][0], blueBoundary[0][1]), cv2.FONT_HERSHEY_DUPLEX, 3.0, (255, 255, 255))
 		cv2.rectangle(frame, (redBoundary[0][0], redBoundary[0][1]), (redBoundary[1][0], redBoundary[1][1]), (255, 255, 255), 1)
 		cv2.rectangle(frame, (blueBoundary[0][0], blueBoundary[0][1]), (blueBoundary[1][0], blueBoundary[1][1]), (255, 255, 255), 1)
 		cv2.imshow('live', frame)
