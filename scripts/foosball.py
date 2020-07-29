@@ -10,10 +10,11 @@ import threading, queue
 from ringbuffer import RingBuffer
 import datetime
 import uuid
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, ContentSettings
 
 # Capturing video through webcam 
-# stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-stream = cv2.VideoCapture(1)
+stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+# stream = cv2.VideoCapture(1)
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
@@ -56,6 +57,8 @@ recordingsQueue = queue.Queue()
 fourcc = cv2.VideoWriter_fourcc(*'avc1')
 
 def recordingWorker():
+	blob_service_client = BlobServiceClient.from_connection_string('DefaultEndpointsProtocol=https;AccountName=foosballmediaservices;AccountKey=KEY;EndpointSuffix=core.windows.net')
+
 	id = None
 	count = 0
 	while True:
@@ -79,8 +82,12 @@ def recordingWorker():
 
 		out.release()
 		out = None
-		print('RECORDING', '%dfps' % fps, filename)
 
+		blob = blob_service_client.get_blob_client(container='recordings', blob=filename)
+		with open(filename, "rb") as data:
+			blob.upload_blob(data, content_settings = ContentSettings(content_type='video/mp4'))
+
+		print('uploaded', blob.url)
 		recordingsQueue.task_done()
 
 threading.Thread(target=recordingWorker, daemon=True).start()
@@ -88,8 +95,9 @@ threading.Thread(target=recordingWorker, daemon=True).start()
 class Game:
 	def __init__(self, buffer):
 		self.buffer = buffer
-		self.red = 0
-		self.blue = 0
+		self.started = False
+		self.red = None
+		self.blue = None
 		self.nextRed = None
 		self.nextBlue = None
 		self.nextCount = 0
@@ -99,7 +107,7 @@ class Game:
 			return
 		
 		if red == self.nextRed and blue == self.nextBlue:
-			if self.nextCount < 10:
+			if self.nextCount < 30:
 				self.nextCount += 1
 			else:
 				self.nextRed = None
@@ -111,11 +119,19 @@ class Game:
 			self.nextCount = 0
 		
 	def setScore(self, red, blue):
-		print('SCORE', red, blue)
 		self.red = red
 		self.blue = blue
-		# teamsQueue.put((red, blue))
+
+		if red == 0 and blue == 0:
+			self.started = True
+		
+		if not self.started:
+			print('reset to 0 - 0 to start the game')
+			return
+
+		print('%d - %d' % (red, blue))
 		if self.buffer.isFull():
+			# teamsQueue.put((red, blue))
 			recordingsQueue.put(self.buffer.__iter__())
 
 redBoundary = ((135, 212), (220, 920))
