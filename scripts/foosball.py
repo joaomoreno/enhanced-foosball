@@ -53,7 +53,7 @@ def teamsWorker():
 threading.Thread(target=teamsWorker, daemon=True).start()
 
 recordingsQueue = queue.Queue()
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 
 def recordingWorker():
 	id = None
@@ -62,11 +62,11 @@ def recordingWorker():
 		iterator = recordingsQueue.get()
 		
 		id = str(uuid.uuid4())
-		filename = '%s.mov' % id
+		filename = '%s.mp4' % id
 		count += 1
 		out = None
 
-		for frame in iterator:
+		for timestamp, frame in iterator:
 			if out is None:
 				height, width, _ = frame.shape
 				out = cv2.VideoWriter(filename, fourcc, 30.0, (width, height))
@@ -226,12 +226,13 @@ def main():
 		except:
 			pass
 
+		now = time.time()
+
 		# logic
 		# frame = process(game, frame)
-		buffer.push(frame)
+		buffer.push((now, frame))
 		
 		# measure
-		now = time.time()
 
 		if then is not None:
 			delay = round((now - then) * 1000)

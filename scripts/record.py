@@ -3,7 +3,7 @@ import cv2
 
 cap = cv2.VideoCapture(0)
 
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 out = None
 
 while(cap.isOpened()):
@@ -13,7 +13,7 @@ while(cap.isOpened()):
         if out is None:
             print(frame.shape)
             height, width, _ = frame.shape
-            out = cv2.VideoWriter('output.mov', fourcc, 20.0, (width, height))
+            out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (width, height))
         
         out.write(frame)
         cv2.imshow('frame',frame)
@@ -27,3 +27,4 @@ cap.release()
 if out is not None:
     out.release()
 cv2.destroyAllWindows()
+ 
