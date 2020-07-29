@@ -16,7 +16,7 @@
         },
         {
           "type": "TextBlock",
-          "text": "RED vs BLUE",
+          "text": "${Title}",
           "spacing": "Medium",
           "horizontalAlignment": "Center",
           "fontType": "Default",
@@ -26,7 +26,7 @@
         },
         {
           "type": "TextBlock",
-          "text": "0 - 0",
+          "text": "${Score}",
           "spacing": "Medium",
           "horizontalAlignment": "Center",
           "fontType": "Monospace",

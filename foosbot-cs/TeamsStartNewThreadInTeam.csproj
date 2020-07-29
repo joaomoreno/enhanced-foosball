@@ -7,15 +7,19 @@
 
   <ItemGroup>
     <Content Remove="AdaptiveCardTemplates\MatchStart.json" />
+    <Content Remove="AdaptiveCardTemplates\MatchUpdate.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="AdaptiveCardTemplates\MatchStart.json" />
+    <EmbeddedResource Include="AdaptiveCardTemplates\MatchUpdate.json" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.1" />
     <PackageReference Include="Microsoft.Bot.Builder.Integration.AspNet.Core" Version="4.9.2" />
+    <PackageReference Include="Microsoft.Graph" Version="3.9.0" />
+    <PackageReference Include="Microsoft.Graph.Auth" Version="1.0.0-preview.5" />
   </ItemGroup>
 
   <ItemGroup>
