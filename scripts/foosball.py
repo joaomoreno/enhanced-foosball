@@ -12,8 +12,8 @@ import datetime
 
 # Capturing video through webcam 
 # stream = cv2.VideoCapture('/Users/joao/Desktop/untitled.mov')
-stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
-# stream = cv2.VideoCapture(0)
+# stream = cv2.VideoCapture('/Users/joao/Downloads/mixed.mp4')
+stream = cv2.VideoCapture(1)
 
 cv2.namedWindow('live', cv2.WND_PROP_FULLSCREEN)
 cv2.resizeWindow('live', 1200,700)
@@ -112,8 +112,8 @@ class Game:
 		if self.buffer.isFull():
 			recordingsQueue.put(self.buffer.__iter__())
 
-redBoundary = ((130, 212), (220, 920))
-blueBoundary = ((1700, 218), (1820, 896))
+redBoundary = ((135, 212), (220, 920))
+blueBoundary = ((1630, 218), (1740, 896))
 
 def process(game, frame, draw = True):
 	redFrame = frame[redBoundary[0][1]:redBoundary[1][1], redBoundary[0][0]:redBoundary[1][0]]
