@@ -5,7 +5,8 @@ def nothing(x):
     pass
 
 # Load image
-stream = cv2.VideoCapture(1)
+# stream = cv2.VideoCapture(1)
+stream = cv2.VideoCapture('C:\\Users\\jomo\\OneDrive\\Enhanced Foosball\\mixed.mp4') 
 
 # Create a window
 cv2.namedWindow('image')
